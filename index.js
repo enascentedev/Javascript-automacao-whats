@@ -72,7 +72,7 @@ async function sendMessage(page, contactName, imagePath) {
   await page.waitForSelector('div[aria-label="Pesquisar"]', { timeout: 60000 });
 
   const contacts = ['Vera TST', 'Dindo WhatsApp', 'Ana Borges Tio Zé'];
-  const imagePath = path.resolve(__dirname, 'imagens/image1.jpg');
+  const imagePath = path.resolve(__dirname, 'imagens/image1.png');
 
   for (let contact of contacts) {
     await sendMessage(page, contact, imagePath);
