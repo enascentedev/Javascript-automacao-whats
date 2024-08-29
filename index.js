@@ -8,19 +8,11 @@ function delay(time) {
   });
 }
 
-async function sendMessage(contactName, imagePath) {
-  const browser = await puppeteer.launch({ headless: false });
-  const page = await browser.newPage();
-  await page.goto('https://web.whatsapp.com');
+async function sendMessage(page, contactName, imagePath) {
+  console.log(`Buscando contato: ${contactName}`);
   
-  console.log('Aguarde, escaneie o QR Code com seu celular.');
-
   // Aguarda o campo de pesquisa
   await page.waitForSelector('div[aria-label="Pesquisar"]', { timeout: 60000 });
-  await delay(5000);
-
-  console.log(`Buscando contato: ${contactName}`);
-  // Busca pelo contato
   await page.type('div[aria-label="Pesquisar"]', contactName);
   await delay(2000);
 
@@ -31,7 +23,6 @@ async function sendMessage(contactName, imagePath) {
     console.log(`Contato ${contactName} selecionado.`);
   } else {
     console.log(`Contato "${contactName}" não encontrado.`);
-    await browser.close();
     return;
   }
 
@@ -39,27 +30,19 @@ async function sendMessage(contactName, imagePath) {
   await page.waitForSelector('div[aria-placeholder="Digite uma mensagem"]', { timeout: 60000 });
   console.log('Janela de conversa carregada.');
 
-  // Aguarda até que o botão de adicionar esteja disponível e clica nele
+  // Clica no botão de adicionar
   await page.waitForSelector('span[data-icon="plus"]', { timeout: 60000 });
   console.log('Clicando no botão de adicionar...');
   await page.click('span[data-icon="plus"]');
   await delay(1000);
 
-  // Aguarda e clica na opção "Fotos e vídeos"
-  await page.waitForSelector('li[data-animate-dropdown-item="true"]', { timeout: 60000 });
-  console.log('Clicando na opção "Fotos e vídeos"...');
-  await page.click('li[data-animate-dropdown-item="true"]');
-  await delay(1000);
-
   console.log(`Tentando enviar imagem de ${imagePath}`);
-  
   // Envia a imagem diretamente ao input file
   const [fileChooser] = await Promise.all([
     page.waitForFileChooser(),
-    // Garante que o input de arquivo seja clicável
     page.evaluate(() => document.querySelector('input[type=file]').click())
   ]);
-
+	
   // Verificação adicional se o fileChooser foi acionado corretamente
   try {
     await fileChooser.accept([imagePath]);
@@ -76,17 +59,26 @@ async function sendMessage(contactName, imagePath) {
   await delay(2000);
 
   console.log(`Imagem enviada para ${contactName}.`);
-
-  await browser.close();
 }
 
-// Exemplo de uso
-const contacts = ['Vera TST', 'Dindo WhatsApp', 'Ana Borges Tio Zé'];
-const imagePath = path.resolve(__dirname, 'imagens/image1.jpg');  // Caminho dentro do projeto
-
-// Usar for...of para garantir que as mensagens sejam enviadas em sequência
 (async () => {
+  const browser = await puppeteer.launch({ headless: false });
+  const page = await browser.newPage();
+  await page.goto('https://web.whatsapp.com');
+  
+  console.log('Aguarde, escaneie o QR Code com seu celular.');
+
+  // Espera o usuário escanear o QR Code e o WhatsApp Web carregar
+  await page.waitForSelector('div[aria-label="Pesquisar"]', { timeout: 60000 });
+
+  const contacts = ['Vera TST', 'Dindo WhatsApp', 'Ana Borges Tio Zé'];
+  const imagePath = path.resolve(__dirname, 'imagens/image1.jpg');
+
   for (let contact of contacts) {
-    await sendMessage(contact, imagePath);
+    await sendMessage(page, contact, imagePath);
+    await delay(5000); // Adiciona um pequeno atraso entre os envios
   }
+
+  console.log('Todas as mensagens foram enviadas. Fechando o navegador...');
+  await browser.close();
 })();
